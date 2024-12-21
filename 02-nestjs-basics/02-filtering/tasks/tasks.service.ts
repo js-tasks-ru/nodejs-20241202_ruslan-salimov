@@ -38,13 +38,11 @@ export class TasksService {
     ];
 
     getFilteredTasks(
-        {status, limit, page}: TasksQuery
+        {status, limit = 10, page = 1}: TasksQuery
     ): Task[] {
-        let _limit = limit ?? 10;
-        let _page = page ?? 1;
-        let start = (_page - 1) * _limit;
+        let start = (page - 1) * limit;
         let tasks = status ? this.tasks.filter(item => item.status === status) : this.tasks;
-        tasks = tasks.slice(start, start + _limit);
+        tasks = tasks.slice(start, start + limit);
         return tasks
     }
 }
