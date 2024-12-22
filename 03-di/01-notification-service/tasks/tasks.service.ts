@@ -1,33 +1,42 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
-import { CreateTaskDto, Task, TaskStatus, UpdateTaskDto } from "./task.model";
+import {Injectable, NotFoundException} from "@nestjs/common";
+import {CreateTaskDto, Task, TaskStatus, UpdateTaskDto} from "./task.model";
+import {NotificationsService} from "../notifications/notifications.service";
+import {UsersService} from "../users/users.service";
 
 @Injectable()
 export class TasksService {
-  private tasks: Task[] = [];
+    private tasks: Task[] = [];
 
-  constructor() {}
-
-  async createTask(createTaskDto: CreateTaskDto) {
-    const { title, description, assignedTo } = createTaskDto;
-    const task: Task = {
-      id: (this.tasks.length + 1).toString(),
-      title,
-      description,
-      status: TaskStatus.Pending,
-      assignedTo,
-    };
-    this.tasks.push(task);
-
-    return task;
-  }
-
-  async updateTask(id: string, updateTaskDto: UpdateTaskDto) {
-    const task = this.tasks.find((t) => t.id === id);
-    if (!task) {
-      throw new NotFoundException(`Задача с ID ${id} не найдена`);
+    constructor(
+        private readonly notificationService: NotificationsService,
+        private readonly userService: UsersService
+    ) {
     }
 
-    Object.assign(task, updateTaskDto);
-    return task;
-  }
+    async createTask(createTaskDto: CreateTaskDto) {
+        const {title, description, assignedTo} = createTaskDto;
+        const task: Task = {
+            id: (this.tasks.length + 1).toString(),
+            title,
+            description,
+            status: TaskStatus.Pending,
+            assignedTo,
+        };
+        this.tasks.push(task);
+        const user = this.userService.getUserById(assignedTo);
+        this.notificationService.sendEmail(user.email, "Новая задача", `Вы назначены ответственным за задачу: "${task.title}"`);
+
+        return task;
+    }
+
+    async updateTask(id: string, updateTaskDto: UpdateTaskDto) {
+        const task = this.tasks.find((t) => t.id === id);
+        if (!task) {
+            throw new NotFoundException(`Задача с ID ${id} не найдена`);
+        }
+        Object.assign(task, updateTaskDto);
+        const user = this.userService.getUserById(task.assignedTo);
+        this.notificationService.sendSMS(user.phone, `Статус задачи "${task.title}" обновлён на "${task.status}"`)
+        return task;
+    }
 }
