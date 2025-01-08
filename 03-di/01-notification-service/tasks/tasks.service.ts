@@ -24,6 +24,9 @@ export class TasksService {
         };
         this.tasks.push(task);
         const user = this.userService.getUserById(assignedTo);
+        if(!user){
+            throw new NotFoundException("User not found")
+        }
         this.notificationService.sendEmail(user.email, "Новая задача", `Вы назначены ответственным за задачу: "${task.title}"`);
 
         return task;
@@ -36,7 +39,13 @@ export class TasksService {
         }
         Object.assign(task, updateTaskDto);
         const user = this.userService.getUserById(task.assignedTo);
+        if(!user){
+            throw new NotFoundException("User not found")
+        }
         this.notificationService.sendSMS(user.phone, `Статус задачи "${task.title}" обновлён на "${task.status}"`)
         return task;
+    }
+    async getAll(){
+        return this.tasks;
     }
 }
